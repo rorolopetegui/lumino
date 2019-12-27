@@ -36,6 +36,14 @@ class LightClientService:
         return result
 
     @classmethod
+    def get_by_address(cls, address, wal: WriteAheadLog) -> Optional[ClientModel]:
+        result = None
+        lc = wal.storage.query_client(address)
+        if lc:
+            result = ClientModel(lc[0], lc[1], lc[2], lc[3])
+        return result
+
+    @classmethod
     def get_light_client_messages(cls, from_message: int, light_client: ChecksumAddress, wal: WriteAheadLog):
         messages = wal.storage.get_light_client_messages(from_message, light_client)
         result: List[LightClientProtocolMessage] = []

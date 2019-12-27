@@ -250,6 +250,7 @@ URLS_COMMON_V1 = [
     ("/address", AddressResource),
 ]
 
+
 def api_response(result, status_code=HTTPStatus.OK):
     if status_code == HTTPStatus.NO_CONTENT:
         assert not result, "Provided 204 response with non-zero length response"
@@ -2169,12 +2170,21 @@ class RestAPI:
         secrethash: typing.SecretHash
     ):
         headers = request.headers
-        api_key = headers.get("x-api-key")
-        if not api_key:
-            return ApiErrorBuilder.build_and_log_error(errors="Missing api_key auth header",
+        # api_key = headers.get("x-api-key")
+        # if not api_key:
+        #     return ApiErrorBuilder.build_and_log_error(errors="Missing api_key auth header",
+        #                                                status_code=HTTPStatus.BAD_REQUEST, log=log)
+        unsigned_message = headers.get("message")
+        signed_message = headers.get("signed-message")
+        if not unsigned_message or not signed_message:
+            return ApiErrorBuilder.build_and_log_error(errors="Missing message or signed-message header",
                                                        status_code=HTTPStatus.BAD_REQUEST, log=log)
+        address_recovered_from_signed_message = recover(data=unsigned_message.encode(),
+                                                        signature=decode_hex(signed_message))
 
-        light_client = LightClientService.get_by_api_key(api_key, self.raiden_api.raiden.wal)
+        # light_client = LightClientService.get_by_api_key(api_key, self.raiden_api.raiden.wal)
+        light_client = LightClientService.get_by_address(to_checksum_address(address_recovered_from_signed_message), self.raiden_api.raiden.wal)
+
         if not light_client:
             return ApiErrorBuilder.build_and_log_error(
                 errors="There is no light client associated with the api key provided",
